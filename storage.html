@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Form Example</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
+        .container {
+            width: 80%;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 20px 0;
+        }
+        th, td {
+            padding: 8px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        td {
+            padding: 12px;
+        }
+        img {
+            max-width: 100px;
+            max-height: 100px;
+            vertical-align: middle;
+        }
+        button {
+            background-color: #007BFF;
+            color: #fff;
+            border: none;
+            padding: 6px 12px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        select, input[type="text"], input[type="file"] {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>EUVOLA DEMO SAMPLE</h1>
+        <form id="myForm">
+            <label for="firstName">First Name:</label>
+            <input type="text" id="firstName" name="firstName"><br>
+            <label for="lastName">Last Name:</label>
+            <input type="text" id="lastName" name="lastName"><br>
+            <label for="imageUpload">Image Upload:</label>
+            <input type="file" id="imageUpload" name="imageUpload"><br>
+            <label for="group">Group:</label>
+            <select id="group" name="group">
+								<option value="1">Select your group</option>
+                <option value="1">Group 1</option>
+                <option value="2">Group 2</option>
+                <option value="3">Group 3</option>
+                <option value="4">Group 4</option>
+                <option value="5">Group 5</option>
+                <option value="6">Group 6</option>
+            </select><br>
+            <button type="button" id="addButton">Add</button>
+        </form>
+        <label for="search">Search:</label>
+        <input type="text" id="search" name="search">
+        <button id="searchButton">Search</button>
+        <table id="dataTable">
+            <thead>
+                <tr>
+                    <th>First Name</th>
+                    <th>Last Name</th>
+                    <th>Image</th>
+                    <th>Group</th>
+                    <th>Delete</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+        <select id="reservedList" size="5">
+            <!-- Reserved list dropdown options will be dynamically added here -->
+        </select>
+    </div>
+    <script>
+        const form = document.getElementById('myForm');
+        const table = document.getElementById('dataTable');
+        const searchButton = document.getElementById('searchButton');
+        const searchInput = document.getElementById('search');
+        const reservedListDropdown = document.getElementById('reservedList');
+        const addButton = document.getElementById('addButton');
+
+        addButton.addEventListener('click', function() {
+            const firstName = document.getElementById('firstName').value;
+            const lastName = document.getElementById('lastName').value;
+            const imageUpload = document.getElementById('imageUpload').files[0];
+            const reader = new FileReader();
+            reader.readAsDataURL(imageUpload);
+            reader.onload = function() {
+                const imageSrc = reader.result;
+                const group = document.getElementById('group').value;
+                const data = {
+                    firstName: firstName,
+                    lastName: lastName,
+                    imageSrc: imageSrc,
+                    group: group
+                };
+                const addToReservedList = confirm("Add this user to Reserved List or Main List?");
+                if (addToReservedList) {
+                    addToReservedDropdown(data);
+                } else {
+                    addToDataTable(data);
+                }
+                clearForm();
+            }
+        });
+
+        function clearForm() {
+            document.getElementById('firstName').value = '';
+            document.getElementById('lastName').value = '';
+            document.getElementById('imageUpload').value = '';
+            document.getElementById('group').selectedIndex = 0;
+        }
+
+        function addToReservedDropdown(data) {
+            const option = document.createElement('option');
+            option.text = data.firstName + ' ' + data.lastName;
+            reservedListDropdown.appendChild(option);
+            option.addEventListener('click', function() {
+                removeFromReservedList(option);
+                addToDataTable(data);
+            });
+            updateLocalStorage();
+        }
+
+        function removeFromReservedList(option) {
+            reservedListDropdown.removeChild(option);
+            updateLocalStorage();
+        }
+
+        function addToDataTable(data) {
+            const row = document.createElement('tr');
+            const rowId = Date.now();
+            row.setAttribute('id', rowId);
+            const firstNameCell = document.createElement('td');
+            firstNameCell.innerText = data.firstName;
+            const lastNameCell = document.createElement('td');
+            lastNameCell.innerText = data.lastName;
+            const imageCell = document.createElement('td');
+            const image = document.createElement('img');
+            image.src = data.imageSrc;
+            image.width = 100;
+            image.height = 100;
+            imageCell.appendChild(image);
+            const groupCell = document.createElement('td');
+            groupCell.innerText = data.group;
+            const deleteCell = document.createElement('td');
+            const deleteButton = document.createElement('button');
+            deleteButton.innerText = 'Delete';
+            deleteButton.addEventListener('click', function() {
+                table.deleteRow(row.rowIndex);
+                removeFromLocalStorage(rowId);
+            });
+            deleteCell.appendChild(deleteButton);
+            row.appendChild(firstNameCell);
+            row.appendChild(lastNameCell);
+            row.appendChild(imageCell);
+            row.appendChild(groupCell);
+            row.appendChild(deleteCell);
+            table.appendChild(row);
+            updateLocalStorage();
+        }
+
+        function updateLocalStorage() {
+            const tableData = [];
+            const reservedListData = [];
+            const rows = table.getElementsByTagName('tr');
+            for (let i = 1; i < rows.length; i++) {
+                const row = rows[i];
+                const rowId = row.getAttribute('id');
+                const firstName = row.getElementsByTagName('td')[0].innerText;
+                const lastName = row.getElementsByTagName('td')[1].innerText;
+                const imageSrc = row.getElementsByTagName('img')[0].src;
+                const group = row.getElementsByTagName('td')[3].innerText;
+                const data = {
+                    rowId: rowId,
+                    firstName: firstName,
+                    lastName: lastName,
+                    imageSrc: imageSrc,
+                    group: group
+                };
+                tableData.push(data);
+            }
+            const options = reservedListDropdown.options;
+            for (let i = 0; i < options.length; i++) {
+                reservedListData.push(options[i].text);
+            }
+            const storageData = {
+                tableData: tableData,
+                reservedListData: reservedListData
+            };
+            localStorage.setItem('data', JSON.stringify(storageData));
+        }
+
+        function removeFromLocalStorage(rowId) {
+            const storageData = JSON.parse(localStorage.getItem('data'));
+            const tableData = storageData.tableData;
+            const updatedTableData = tableData.filter(data => data.rowId !== rowId);
+            storageData.tableData = updatedTableData;
+            localStorage.setItem('data', JSON.stringify(storageData));
+        }
+
+        function loadFromLocalStorage() {
+            const storageData = JSON.parse(localStorage.getItem('data'));
+            if (storageData) {
+                const tableData = storageData.tableData;
+                const reservedListData = storageData.reservedListData;
+                reservedListData.forEach(function(name) {
+                    const option = document.createElement('option');
+                    option.text = name;
+                    reservedListDropdown.appendChild(option);
+                });
+                tableData.forEach(function(data) {
+                    addToDataTable(data);
+                });
+            }
+        }
+
+        loadFromLocalStorage();
+
+        searchButton.addEventListener('click', function() {
+            const query = searchInput.value.toLowerCase();
+            const rows = table.getElementsByTagName('tr');
+            for (let i = 1; i < rows.length; i++) {
+                const firstName = rows[i].getElementsByTagName('td')[0].innerText.toLowerCase();
+                const lastName = rows[i].getElementsByTagName('td')[1].innerText.toLowerCase();
+                const group = rows[i].getElementsByTagName('td')[3].innerText.toLowerCase();
+                if (firstName.includes(query) || lastName.includes(query) || group.includes(query)) {
+                    rows[i].style.display = '';
+                } else {
+                    rows[i].style.display = 'none';
+                }
+            }
+        });
+    </script>
+</body>
+</html>
